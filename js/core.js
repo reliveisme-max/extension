@@ -1,9 +1,10 @@
 // ============================================================
-// CORE.JS - TRÁI TIM HỆ THỐNG (V6 FINAL)
+// CORE.JS - TRÁI TIM HỆ THỐNG
 // Chứa: Biến toàn cục, Hàm lấy Token, Check Cookie, User Info
 // ============================================================
 
 // --- 1. BIẾN TOÀN CỤC (GLOBAL VARIABLES) ---
+// Các file khác (tab_scan, tab_reg...) sẽ dùng chung các biến này
 let accessToken = "";
 let currentUserId = "";
 let listBM = []; 
@@ -30,14 +31,13 @@ function checkCookieAlive() {
                 resolve(!!cookie);
             });
         } else {
-            resolve(true); // Fallback cho môi trường dev
+            resolve(true); // Fallback cho môi trường dev local
         }
     });
 }
 
-// --- 4. LẤY TOKEN (THUẬT TOÁN VÉT CẠN - BRUTE FORCE) ---
+// --- 4. LẤY TOKEN (BRUTE FORCE) ---
 async function getTokenBruteForce() {
-    // 4 nguồn lấy Token uy tín nhất hiện nay
     const sources = [
         'https://www.facebook.com/adsmanager/manage/campaigns',
         'https://business.facebook.com/business_locations',
@@ -59,7 +59,6 @@ async function fetchAndFindToken(url) {
     try {
         const response = await fetch(url, { method: 'GET', credentials: 'include' });
         const text = await response.text();
-        // Regex tìm chuỗi EAA dài ngoằng
         const match = text.match(/(EAA[a-zA-Z0-9]{30,})/);
         return match ? match[1] : null;
     } catch (error) { return null; }
@@ -69,7 +68,6 @@ async function fetchAndFindToken(url) {
 async function getSelfInfo() {
     if (!accessToken) return;
     try {
-        // Lấy ID và Tên để hiển thị
         const res = await fetch(`https://graph.facebook.com/me?access_token=${accessToken}`);
         const data = await res.json();
         

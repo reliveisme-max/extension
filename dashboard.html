@@ -2,72 +2,117 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>BM Commander V6</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BM Commander Pro</title>
+    <!-- CSS Chính -->
     <link rel="stylesheet" href="style.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- 1. PHOSPHOR ICONS (Icon đẹp, nét mảnh) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- 2. SWEETALERT 2 (Thông báo đẹp) -->
+    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
 </head>
 <body>
 
-    <!-- SIDEBAR (MENU TRÁI) -->
+    <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="logo">
-            <i class="fa-solid fa-shield-cat"></i> BM COMMANDER
+            <i class="ph-duotone ph-shield-check" style="color: #818cf8;"></i> 
+            <span>BM COMMANDER</span>
         </div>
+        
         <ul class="menu">
-            <!-- Tab Quản lý -->
-            <li class="active" onclick="switchTab('tab-scan', this)">
-                <i class="fa-solid fa-table-columns"></i> Quản lý chung
+            <li class="active" id="nav-scan">
+                <i class="ph-bold ph-squares-four"></i> Quản lý chung
             </li>
-            <!-- Tab Reg BM -->
-            <li onclick="switchTab('tab-reg', this)">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> Reg BM (Mới)
+            <li id="nav-reg">
+                <i class="ph-bold ph-magic-wand"></i> Reg BM Auto
             </li>
-            <!-- Các tính năng tương lai -->
             <li class="disabled">
-                <i class="fa-solid fa-sliders"></i> Cấu hình
+                <i class="ph-bold ph-gear"></i> Cấu hình
             </li>
         </ul>
-        <div class="footer-info">Dev by AI - Ver 6.0 Final</div>
+
+        <div class="footer-info">
+            <p>Version 6.0 Pro</p>
+            <p style="opacity: 0.5;">Dev by AI</p>
+        </div>
     </div>
 
-    <!-- MAIN CONTENT (NỘI DUNG PHẢI) -->
+    <!-- MAIN CONTENT -->
     <div class="main-content">
         
-        <!-- Header Chung -->
+        <!-- HEADER -->
         <div class="top-bar">
-            <div id="token-status" class="status-badge">
-                <i class="fa-solid fa-circle-notch fa-spin"></i> Loading...
+            <!-- Status Badge -->
+            <div id="token-status" class="status-badge loading">
+                <i class="ph-bold ph-spinner ph-spin"></i> Kết nối...
             </div>
+
+            <!-- User Info -->
             <div class="user-profile">
-                <span id="user-name">Unknown</span>
-                <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                <div class="user-text">
+                    <span id="user-name">Đang tải...</span>
+                    <small>Administrator</small>
+                </div>
+                <div class="avatar">
+                    <i class="ph-bold ph-user"></i>
+                </div>
             </div>
         </div>
 
-        <!-- === TAB 1: DASHBOARD (SCAN LIST) === -->
+        <!-- === TAB 1: DASHBOARD === -->
         <div id="tab-scan" class="tab-panel active">
-            <!-- Thống kê -->
+            <!-- Thống kê (Thêm icon cho đẹp) -->
             <div class="stats-grid">
-                <div class="card stat-box"><h3>Tổng BM</h3><span id="stat-total">0</span></div>
-                <div class="card stat-box success"><h3>Live</h3><span id="stat-live">0</span></div>
-                <div class="card stat-box danger"><h3>Die / Policy</h3><span id="stat-die">0</span></div>
-                <div class="card stat-box warning"><h3>Admin Ẩn</h3><span id="stat-hidden">0</span></div>
+                <div class="card stat-box">
+                    <div class="icon-box"><i class="ph-duotone ph-briefcase"></i></div>
+                    <div>
+                        <h3>Tổng BM</h3>
+                        <span id="stat-total">0</span>
+                    </div>
+                </div>
+                <div class="card stat-box success">
+                    <div class="icon-box"><i class="ph-duotone ph-check-circle"></i></div>
+                    <div>
+                        <h3>Đang Hoạt Động</h3>
+                        <span id="stat-live">0</span>
+                    </div>
+                </div>
+                <div class="card stat-box danger">
+                    <div class="icon-box"><i class="ph-duotone ph-warning-circle"></i></div>
+                    <div>
+                        <h3>Die / Policy</h3>
+                        <span id="stat-die">0</span>
+                    </div>
+                </div>
+                <div class="card stat-box warning">
+                    <div class="icon-box"><i class="ph-duotone ph-ghost"></i></div>
+                    <div>
+                        <h3>Admin Ẩn</h3>
+                        <span id="stat-hidden">0</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Toolbar -->
             <div class="action-bar card">
                 <div class="left-actions">
-                    <button id="btn-scan" class="btn btn-primary"><i class="fa-solid fa-rotate"></i> Quét lại</button>
+                    <button id="btn-scan" class="btn btn-primary">
+                        <i class="ph-bold ph-arrows-clockwise"></i> Quét Dữ Liệu
+                    </button>
                     <div class="search-wrapper">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="search-input" placeholder="Tìm ID hoặc Tên BM...">
+                        <i class="ph-bold ph-magnifying-glass"></i>
+                        <input type="text" id="search-input" placeholder="Tìm kiếm BM...">
                     </div>
                 </div>
-                <!-- Bulk Actions -->
+                
                 <div class="right-actions" id="bulk-actions" style="opacity: 0.5; pointer-events: none;">
-                    <span style="font-size: 12px; color: #aaa; margin-right: 10px;">Đã chọn: <b id="selected-count">0</b></span>
+                    <span class="selected-text">Đã chọn: <b id="selected-count">0</b></span>
                     <button id="btn-bulk-leave" class="btn btn-danger btn-sm">
-                        <i class="fa-solid fa-right-from-bracket"></i> Rời BM
+                        <i class="ph-bold ph-sign-out"></i> Rời Nhanh
                     </button>
                 </div>
             </div>
@@ -78,11 +123,11 @@
                     <thead>
                         <tr>
                             <th width="40" class="center"><input type="checkbox" id="check-all"></th>
-                            <th width="30%">BM Info</th>
+                            <th width="30%">Thông tin BM</th>
                             <th width="15%">Trạng thái</th>
                             <th width="15%">Tài sản</th>
-                            <th width="15%">Admin</th>
-                            <th width="25%" class="center">Hành động</th>
+                            <th width="15%">Thành viên</th>
+                            <th width="25%" class="center">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody><!-- JS Render --></tbody>
@@ -90,62 +135,72 @@
             </div>
         </div>
 
-        <!-- === TAB 2: REG BM (GIAO DIỆN MỚI) === -->
+        <!-- === TAB 2: REG BM === -->
         <div id="tab-reg" class="tab-panel">
-            <div style="display: flex; gap: 20px; height: 100%;">
-                
-                <!-- Cột 1: Form Cấu Hình -->
-                <div class="card" style="flex: 1; padding: 25px; overflow-y: auto;">
-                    <h3 style="margin-top:0; color:var(--primary); display:flex; justify-content:space-between; align-items:center;">
-                        <span><i class="fa-solid fa-sliders"></i> Cấu hình Reg</span>
-                        <span id="limit-info" class="badge badge-die" style="font-size:11px;">Check Limit...</span>
-                    </h3>
+            <div class="reg-layout">
+                <!-- Cột Trái: Cấu Hình -->
+                <div class="card reg-config">
+                    <div class="card-header">
+                        <h3><i class="ph-duotone ph-sliders-horizontal"></i> Cấu Hình Reg</h3>
+                        <span id="limit-info" class="badge">Check Limit...</span>
+                    </div>
                     
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label class="form-label">Tên BM Gốc:</label>
-                        <input type="text" id="reg-name" value="BM Agency" class="modal-input" placeholder="VD: Ads Pro...">
+                    <div class="form-group">
+                        <label>Tên BM Gốc</label>
+                        <div class="input-with-icon">
+                            <i class="ph-bold ph-tag"></i>
+                            <input type="text" id="reg-name" value="BM Agency" placeholder="VD: Ads Pro...">
+                        </div>
                     </div>
 
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label class="form-label">Số lượng muốn tạo:</label>
-                        <input type="number" id="reg-qty" value="1" min="1" max="10" class="modal-input" placeholder="Nhập số lượng...">
-                        <small style="color:#6b7280; font-size:11px;">* Tối đa phụ thuộc vào Limit của Via.</small>
-                    </div>
-
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label class="form-label">Mời Email (Tùy chọn):</label>
-                        <input type="text" id="reg-email" class="modal-input" placeholder="Nhập email nếu muốn mời ngay...">
-                        <small style="color:#6b7280; font-size:11px;">* Bỏ trống nếu không cần mời.</small>
-                    </div>
-
-                    <div class="form-group divider">
-                        <label class="form-label warning"><i class="fa-solid fa-shield-halved"></i> Chống Spam:</label>
-                        <label class="chk-label"><input type="checkbox" id="reg-random-name" checked> Random tên (+ Hậu tố)</label>
-                        <label class="chk-label"><input type="checkbox" id="reg-delay" checked> Delay ngẫu nhiên (30s-60s)</label>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Số lượng</label>
+                            <input type="number" id="reg-qty" value="1" min="1" max="10">
+                        </div>
+                        <div class="form-group">
+                            <label>Múi giờ</label>
+                            <select id="reg-timezone">
+                                <option value="Asia/Ho_Chi_Minh">GMT+7 VN</option>
+                                <option value="America/Los_Angeles">GMT-7 US</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">Thông tin (Trust):</label>
-                        <select id="reg-timezone" class="modal-input" style="margin-bottom:10px;">
-                            <option value="Asia/Ho_Chi_Minh">GMT+7 (Vietnam)</option>
-                            <option value="America/Los_Angeles">GMT-7 (US Pacific)</option>
-                        </select>
-                        <select id="reg-currency" class="modal-input">
-                            <option value="VND">VND (Việt Nam Đồng)</option>
-                            <option value="USD">USD (Đô la Mỹ)</option>
-                        </select>
+                        <label>Mời Email (Tùy chọn)</label>
+                        <div class="input-with-icon">
+                            <i class="ph-bold ph-envelope"></i>
+                            <input type="text" id="reg-email" placeholder="Nhập email...">
+                        </div>
                     </div>
 
-                    <button id="btn-start-reg" class="btn btn-primary full-width">
-                        <i class="fa-solid fa-play"></i> BẮT ĐẦU REG
+                    <div class="divider"></div>
+                    
+                    <div class="switch-group">
+                        <label class="switch-item">
+                            <input type="checkbox" id="reg-random-name" checked>
+                            <span>Random tên (+ Số đuôi)</span>
+                        </label>
+                        <label class="switch-item">
+                            <input type="checkbox" id="reg-delay" checked>
+                            <span>Delay an toàn (30s-60s)</span>
+                        </label>
+                    </div>
+
+                    <button id="btn-start-reg" class="btn btn-primary full-width mt-3">
+                        <i class="ph-bold ph-play"></i> BẮT ĐẦU CHẠY
                     </button>
                 </div>
 
-                <!-- Cột 2: Logs Console -->
-                <div class="card" style="flex: 1.5; padding: 25px; display:flex; flex-direction:column;">
-                    <h3 style="margin-top:0;"><i class="fa-solid fa-terminal"></i> Nhật ký hoạt động</h3>
+                <!-- Cột Phải: Logs -->
+                <div class="card reg-logs-container">
+                    <div class="card-header">
+                        <h3><i class="ph-duotone ph-terminal-window"></i> Nhật Ký (Logs)</h3>
+                        <button class="btn-icon-small" onclick="document.getElementById('reg-logs').innerHTML=''"><i class="ph-bold ph-trash"></i></button>
+                    </div>
                     <div id="reg-logs" class="console-log">
-                        <div>> Sẵn sàng...</div>
+                        <div class="log-line info">> Hệ thống sẵn sàng...</div>
                     </div>
                 </div>
             </div>
@@ -153,20 +208,7 @@
 
     </div>
 
-    <!-- MODAL ĐỔI TÊN -->
-    <div id="rename-modal" class="modal">
-        <div class="modal-content">
-            <h3>Đổi tên BM</h3>
-            <p id="modal-bm-id">ID: ...</p>
-            <input type="text" id="new-bm-name" class="modal-input">
-            <div class="modal-actions">
-                <button id="btn-cancel-rename" class="btn btn-secondary">Hủy</button>
-                <button id="btn-confirm-rename" class="btn btn-primary">Lưu</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- JS FILES -->
+    <!-- JS MODULES -->
     <script src="js/core.js"></script>
     <script src="js/tab_scan.js"></script>
     <script src="js/tab_action.js"></script>

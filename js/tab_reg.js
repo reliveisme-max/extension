@@ -1,25 +1,16 @@
 // ============================================================
-// TAB_REG.JS - TÍNH NĂNG TẠO BM (V6 FINAL - FIX LOG)
+// TAB_REG.JS - TÍNH NĂNG TẠO BM (V6 FINAL - CLEAN)
 // Chứa: Logic Check Limit (Silent), Reg BM, Invite Email
 // ============================================================
 
-// --- SỰ KIỆN: CHECK LIMIT KHI CHUYỂN TAB ---
-// Dùng Event Delegation để bắt sự kiện click vào menu Reg BM
-document.addEventListener('click', function(e) {
-    // Nếu click vào menu có chứa chữ 'tab-reg'
-    const menuReg = e.target.closest('li[onclick*="tab-reg"]');
-    if (menuReg) {
-        checkViaLimit();
-    }
-});
-
-// Sự kiện nút Bắt đầu
+// Sự kiện nút Bắt đầu (Giữ nguyên)
 const btnStartReg = document.getElementById('btn-start-reg');
 if(btnStartReg) {
     btnStartReg.addEventListener('click', startRegProcess);
 }
 
-// --- 1. CHECK LIMIT (CHẠY NGẦM - KHÔNG SPAM LOG) ---
+// --- 1. CHECK LIMIT (CHẠY NGẦM) ---
+// Hàm này sẽ được gọi từ Main.js khi bấm chuyển Tab
 async function checkViaLimit() {
     const infoBadge = document.getElementById('limit-info');
     if(!accessToken || !infoBadge) return;
@@ -35,7 +26,7 @@ async function checkViaLimit() {
         
         const count = json.data ? json.data.length : 0;
         
-        // Cập nhật UI Badge (Không ghi vào Log nữa để tránh spam)
+        // Cập nhật UI Badge
         infoBadge.innerText = `Đang cầm: ${count} BM`;
         infoBadge.className = "badge badge-live"; 
         infoBadge.style.background = "#374151";
@@ -50,7 +41,7 @@ async function checkViaLimit() {
 async function startRegProcess() {
     const btn = document.getElementById('btn-start-reg');
     
-    // A. Lấy Input
+    // A. Lấy Input từ Form
     const baseName = document.getElementById('reg-name').value.trim() || "BM Agency";
     const qtyInput = document.getElementById('reg-qty');
     const qty = parseInt(qtyInput.value) || 1;
@@ -59,12 +50,12 @@ async function startRegProcess() {
     const useRandom = document.getElementById('reg-random-name').checked;
     const useDelay = document.getElementById('reg-delay').checked;
     
-    if (!accessToken) return alert("Chưa có Token!");
+    if (!accessToken) return alert("Chưa có Token! Hãy F5 lại trang.");
 
     // B. Khóa giao diện & Reset Logs
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
-    clearLogs(); // Xóa sạch log cũ
+    clearLogs(); 
     addLog(`🚀 Bắt đầu tạo ${qty} BM...`, "info");
     if(inviteEmail) addLog(`📧 Chế độ: Mời trực tiếp vào mail "${inviteEmail}"`, "info");
 
@@ -72,7 +63,7 @@ async function startRegProcess() {
 
     // C. Vòng lặp Tạo
     for (let i = 1; i <= qty; i++) {
-        // 1. Random Tên
+        // 1. Tạo tên
         let finalName = baseName;
         if (useRandom) {
             const randomSuffix = Math.floor(Math.random() * 899) + 100;
@@ -82,14 +73,14 @@ async function startRegProcess() {
 
         addLog(`[${i}/${qty}] Đang Reg: "${finalName}"...`, "info");
 
-        // 2. Gọi API Tạo BM
+        // 2. Gọi API
         const result = await createBM(finalName);
 
         if (result.success) {
             successCount++;
             addLog(`✅ Tạo thành công! ID: ${result.id}`, "success");
 
-            // 3. Xử lý Mời (Invite)
+            // 3. Invite
             if (inviteEmail) {
                 addLog(`...Đang mời mail...`, "warning");
                 const invited = await inviteUserToBM(result.id, inviteEmail);
@@ -100,13 +91,14 @@ async function startRegProcess() {
         } else {
             addLog(`❌ Thất bại: ${result.error}`, "danger");
             // Check lỗi Limit
-            if (result.error.toLowerCase().includes("limit") || result.error.toLowerCase().includes("maximum")) {
+            const errStr = result.error.toLowerCase();
+            if (errStr.includes("limit") || errStr.includes("maximum")) {
                 addLog("⛔ Đã đạt giới hạn tạo BM của Via này! Dừng lại.", "danger");
                 break;
             }
         }
 
-        // 4. Delay (Chống Spam)
+        // 4. Delay
         if (i < qty && useDelay) {
             const delayTime = Math.floor(Math.random() * 30) + 30; // 30s - 60s
             addLog(`⏳ Nghỉ ${delayTime}s chống checkpoint...`, "warning");
@@ -119,35 +111,26 @@ async function startRegProcess() {
     btn.disabled = false;
     btn.innerHTML = '<i class="fa-solid fa-play"></i> BẮT ĐẦU REG';
     
-    // Refresh lại list BM (ngầm) để khi quay lại tab 1 thấy luôn
-    scanBMs();
+    // Refresh lại list BM (ngầm)
+    if(typeof scanBMs === "function") scanBMs();
 }
 
-// --- HÀM API: TẠO BM ---
+// --- API & UTILS ---
 async function createBM(name) {
     try {
         const url = `https://graph.facebook.com/v17.0/me/businesses?access_token=${accessToken}`;
         const payload = { name: name, vertical: "OTHER" };
-
         const res = await fetch(url, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
         });
-
         const json = await res.json();
-
-        if (json.id) {
-            return { success: true, id: json.id };
-        } else {
-            return { success: false, error: json.error ? json.error.message : "Lỗi không xác định" };
-        }
-    } catch (e) {
-        return { success: false, error: "Lỗi mạng" };
-    }
+        if (json.id) return { success: true, id: json.id };
+        else return { success: false, error: json.error ? json.error.message : "Lỗi không xác định" };
+    } catch (e) { return { success: false, error: "Lỗi mạng" }; }
 }
 
-// --- HÀM API: MỜI MAIL ---
 async function inviteUserToBM(bmId, email) {
     try {
         const url = `https://graph.facebook.com/v17.0/${bmId}/business_users?access_token=${accessToken}`;
@@ -161,30 +144,26 @@ async function inviteUserToBM(bmId, email) {
     } catch (e) { return false; }
 }
 
-// --- UTILS ---
 function addLog(msg, type) {
     const logBox = document.getElementById('reg-logs');
+    if(!logBox) return;
     const div = document.createElement('div');
-    
     let color = "#d1d5db";
     if (type === "success") color = "#10b981";
     if (type === "danger") color = "#ef4444";
     if (type === "warning") color = "#f59e0b";
     if (type === "info") color = "#60a5fa";
-
     div.style.color = color;
     div.style.marginBottom = "6px";
     div.style.borderBottom = "1px dashed rgba(255,255,255,0.05)";
     div.innerHTML = msg.startsWith(">") ? msg : `> ${msg}`;
-    
     logBox.appendChild(div);
     logBox.scrollTop = logBox.scrollHeight;
 }
 
 function clearLogs() {
-    document.getElementById('reg-logs').innerHTML = "<div>> Sẵn sàng...</div>";
+    const logBox = document.getElementById('reg-logs');
+    if(logBox) logBox.innerHTML = "<div>> Sẵn sàng...</div>";
 }
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }

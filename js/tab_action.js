@@ -1,195 +1,323 @@
 // ============================================================
-// TAB_ACTION.JS - CÁC HÀNH ĐỘNG XỬ LÝ BM
-// Chứa: actionLink, actionClean, actionLeave, Rename Logic
+// TAB_ACTION.JS - XỬ LÝ HÀNH ĐỘNG (SWEETALERT 2 UI)
 // ============================================================
 
-// --- 1. TẠO LINK MỜI (GET BACKUP LINK) ---
-async function actionLink(bmId) {
-    if (!accessToken) return alert("Chưa có Token!");
+// --- 1. EVENT DELEGATION (BẮT SỰ KIỆN TỪ BẢNG) ---
+const table = document.getElementById('bm-table');
 
-    // Hỏi xác nhận cho chắc
-    if (!confirm("Bạn muốn tạo Link mời Admin dự phòng cho BM này?")) return;
+if (table) {
+    table.addEventListener('click', (e) => {
+        // A. Xử lý các nút hành động
+        const btn = e.target.closest('.btn-action');
+        if (btn) {
+            const action = btn.dataset.action;
+            const id = btn.dataset.id;
+            
+            if (action === 'link') actionInvite(id);
+            if (action === 'edit') actionRename(id, btn.dataset.name);
+            if (action === 'clean') actionManageUsers(id); // Đổi tên hàm cho đúng bản chất
+            if (action === 'leave') actionLeave(id);
+            return;
+        }
+
+        // B. Xử lý Copy ID
+        const idSpan = e.target.closest('.pointer-copy');
+        if (idSpan) {
+            navigator.clipboard.writeText(idSpan.dataset.id);
+            // Toast nhỏ góc trên
+            const Toast = Swal.mixin({
+                toast: true, position: 'top-end', showConfirmButton: false, 
+                timer: 1500, timerProgressBar: true,
+                background: '#1e293b', color: '#fff'
+            });
+            Toast.fire({ icon: 'success', title: 'Đã copy ID!' });
+        }
+    });
+}
+
+// ============================================================
+// 2. TÍNH NĂNG: MỜI & LẤY LINK (INVITE)
+// ============================================================
+async function actionInvite(bmId) {
+    if (!accessToken) return;
+
+    // 1. Hiện Popup nhập mail
+    const { value: email, isDismissed } = await Swal.fire({
+        title: 'Mời Admin & Lấy Link',
+        html: `
+            <p style="color:#94a3b8; font-size:13px;">Nhập email khách hoặc để trống để dùng mail ảo.</p>
+            <input id="swal-input-email" class="swal2-input" placeholder="ví dụ: client@gmail.com" style="background:#0f172a; color:#fff; border:1px solid #334155;">
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="ph-bold ph-paper-plane-right"></i> Gửi & Lấy Link',
+        cancelButtonText: 'Hủy',
+        background: '#1e293b', color: '#fff',
+        preConfirm: () => {
+            return document.getElementById('swal-input-email').value;
+        }
+    });
+
+    if (isDismissed) return;
+
+    // 2. Xử lý logic
+    Swal.fire({
+        title: 'Đang xử lý...',
+        html: 'Đang gửi lời mời và trích xuất Link...',
+        didOpen: () => Swal.showLoading(),
+        background: '#1e293b', color: '#fff', allowOutsideClick: false
+    });
 
     try {
-        // Bước 1: Mời 1 email ảo vào làm Admin
-        // (FB sẽ sinh ra link mời cho email này)
-        const fakeEmail = `backup.${Date.now()}@gmail.com`;
-        const urlInvite = `https://graph.facebook.com/v17.0/${bmId}/business_users?access_token=${accessToken}`;
+        const targetEmail = email ? email.trim() : `backup.${Date.now()}@hotmail.com`;
         
+        // Gọi API Invite
+        const urlInvite = `https://graph.facebook.com/v17.0/${bmId}/business_users?access_token=${accessToken}`;
         const resInvite = await fetch(urlInvite, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ email: fakeEmail, role: 'ADMIN' })
+            body: JSON.stringify({ email: targetEmail, role: 'ADMIN' })
         });
-        
         const jsonInvite = await resInvite.json();
 
-        // Bước 2: Lấy Link từ danh sách lời mời đang chờ (Pending)
         if (jsonInvite.id) {
+            // Gọi API lấy Link
+            await new Promise(r => setTimeout(r, 1500)); // Đợi 1.5s cho FB đỡ lag
             const urlGetLink = `https://graph.facebook.com/v17.0/${bmId}/pending_users?access_token=${accessToken}&fields=invite_link,email`;
             const resLink = await fetch(urlGetLink);
             const jsonLink = await resLink.json();
             
-            // Tìm đúng cái email vừa mời
-            const inviteData = jsonLink.data.find(i => i.email === fakeEmail);
-            
+            const inviteData = jsonLink.data.find(i => i.email === targetEmail);
+
             if (inviteData && inviteData.invite_link) {
-                // Copy luôn vào clipboard
-                navigator.clipboard.writeText(inviteData.invite_link);
-                alert("✅ Đã lấy Link thành công & Copy vào bộ nhớ!\n\n" + inviteData.invite_link);
+                // Thành công -> Hiện Link
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công!',
+                    html: `
+                        <div style="background:#0f172a; padding:10px; border-radius:8px; border:1px dashed #475569; word-break:break-all; color:#818cf8; font-family:monospace;">
+                            ${inviteData.invite_link}
+                        </div>
+                    `,
+                    confirmButtonText: 'Copy Link',
+                    background: '#1e293b', color: '#fff'
+                }).then(() => {
+                    navigator.clipboard.writeText(inviteData.invite_link);
+                    const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, background: '#1e293b', color: '#fff' });
+                    Toast.fire({ icon: 'success', title: 'Đã copy vào bộ nhớ!' });
+                });
             } else {
-                alert("⚠️ Đã gửi lời mời nhưng Facebook chưa trả về Link kịp. Hãy thử lại sau 10s.");
+                Swal.fire({ icon: 'warning', title: 'Chưa thấy Link', text: 'Đã gửi lời mời nhưng FB chưa trả về Link kịp. Hãy thử lại.', background: '#1e293b', color: '#fff' });
             }
         } else {
-            alert("❌ Lỗi tạo lời mời: " + (jsonInvite.error ? jsonInvite.error.message : "Unknown error"));
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: jsonInvite.error?.message || 'Không thể mời.', background: '#1e293b', color: '#fff' });
         }
     } catch (e) {
-        console.error(e);
-        alert("Lỗi kết nối mạng.");
+        Swal.fire({ icon: 'error', title: 'Lỗi mạng', text: e.message, background: '#1e293b', color: '#fff' });
     }
 }
 
-// --- 2. ĐỔI TÊN BM (RENAME LOGIC) ---
-let currentEditBmId = null; // Biến tạm lưu ID đang sửa
-
-// Mở Modal
-function openRenameModal(id, currentName) {
-    currentEditBmId = id;
-    const modal = document.getElementById('rename-modal');
-    document.getElementById('modal-bm-id').innerText = `ID: ${id}`;
-    document.getElementById('new-bm-name').value = currentName;
-    modal.style.display = "block";
-    document.getElementById('new-bm-name').focus();
-}
-
-// Đóng Modal
-document.getElementById('btn-cancel-rename').addEventListener('click', () => {
-    document.getElementById('rename-modal').style.display = "none";
-});
-
-// Lưu Tên Mới
-document.getElementById('btn-confirm-rename').addEventListener('click', async () => {
-    const newName = document.getElementById('new-bm-name').value.trim();
-    if (!newName) return alert("Vui lòng nhập tên mới!");
-    
-    // UI Feedback
-    const btn = document.getElementById('btn-confirm-rename');
-    const originalText = btn.innerText;
-    btn.innerText = "Đang lưu...";
-    btn.disabled = true;
-
-    try {
-        const url = `https://graph.facebook.com/v17.0/${currentEditBmId}?access_token=${accessToken}`;
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ name: newName })
-        });
-        const json = await res.json();
-
-        if (json.success) {
-            // Cập nhật giao diện ngay lập tức (không cần load lại trang)
-            const nameEl = document.getElementById(`name-${currentEditBmId}`);
-            if(nameEl) nameEl.innerText = newName;
-            
-            document.getElementById('rename-modal').style.display = "none";
-            // alert("Đổi tên thành công!");
-        } else {
-            alert("Lỗi FB: " + json.error.message);
-        }
-    } catch (e) {
-        alert("Lỗi kết nối.");
-    } finally {
-        btn.innerText = originalText;
-        btn.disabled = false;
-    }
-});
-
-// --- 3. DỌN DẸP ADMIN ẨN (CLEAN / KICK) ---
-async function actionClean(bmId) {
-    if (!confirm("⚠️ CẢNH BÁO: Hành động này sẽ đá tất cả Admin khác ra khỏi BM, chỉ giữ lại bạn.\n\nBạn chắc chắn chứ?")) return;
-
-    // Tìm thông tin BM trong listBM (biến toàn cục bên core.js)
-    const targetBM = listBM.find(b => b.id == bmId);
-    if (!targetBM) return alert("Không tìm thấy dữ liệu BM này.");
-
-    const users = targetBM.business_users.data;
-    let kickCount = 0;
-    let failCount = 0;
-
-    // Duyệt qua từng user để đá
-    for (const u of users) {
-        // Bỏ qua chính mình (currentUserId lấy từ core.js)
-        // Nếu user.id (Global ID) trùng với currentUserId thì bỏ qua
-        // Lưu ý: u.user.id mới là Global ID, còn u.id là Business User ID.
-        // Tuy nhiên Graph API v17 list trả về object User.
-        
-        // Logic an toàn: Nếu tên user trùng tên mình thì cũng bỏ qua (phòng trường hợp ID so sánh lỗi)
-        const myName = document.getElementById('user-name').innerText;
-        if (u.id === currentUserId || u.name === myName) {
-            continue; 
-        }
-
-        try {
-            const url = `https://graph.facebook.com/v17.0/${u.id}?access_token=${accessToken}`;
-            await fetch(url, { method: 'DELETE' });
-            kickCount++;
-        } catch (e) {
-            failCount++;
-        }
-    }
-
-    alert(`✅ Đã dọn dẹp xong!\n- Đã đá: ${kickCount} admin.\n- Lỗi: ${failCount} (Có thể là Via gốc hoặc System User).`);
-    
-    // Quét lại để cập nhật bảng
-    scanBMs();
-}
-
-// --- 4. RỜI BM (LEAVE) ---
-async function actionLeave(bmId) {
-    if (!confirm("🚪 Bạn chắc chắn muốn tự RỜI khỏi BM này? (Không thể hoàn tác)")) return;
-
+// ============================================================
+// 3. TÍNH NĂNG: QUẢN LÝ & ĐÁ MEMBER (CLEAN)
+// ============================================================
+async function actionManageUsers(bmId) {
+    // Lấy data BM từ biến global
     const targetBM = listBM.find(b => b.id == bmId);
     if (!targetBM) return;
 
-    // Tìm ID của chính mình trong BM đó để xóa
-    // (Trong BM, mỗi user có 1 ID riêng gọi là Business User ID)
-    let myBusinessUserId = null;
-    const myName = document.getElementById('user-name').innerText;
+    const users = targetBM.business_users?.data || [];
+    const myName = document.getElementById('user-name')?.innerText || "";
 
-    // Tìm theo ID (Chính xác nhất)
-    const me = targetBM.business_users.data.find(u => u.id === currentUserId); // Trường hợp FB trả Global ID
-    
-    if (me) {
-        myBusinessUserId = me.id;
-    } else {
-        // Fallback: Tìm theo Tên (Kém chính xác hơn nhưng cần thiết nếu FB ẩn ID)
-        const meByName = targetBM.business_users.data.find(u => u.name === myName);
-        if (meByName) myBusinessUserId = meByName.id;
-    }
+    // Tạo HTML bảng danh sách
+    let tableRows = users.map(u => {
+        // Check xem có phải mình không
+        const isMe = (u.id === currentUserId) || (u.user?.id === currentUserId) || (u.name === myName);
+        const roleBadge = u.role === 'ADMIN' 
+            ? '<span style="color:#34d399; font-size:11px; font-weight:bold;">ADMIN</span>' 
+            : '<span style="color:#94a3b8; font-size:11px;">NV</span>';
+        
+        // Nút xóa (Ẩn nếu là mình)
+        const deleteBtn = isMe 
+            ? `<button disabled style="opacity:0.3; background:none; border:none; color:#fff;"><i class="ph-bold ph-shield"></i></button>`
+            : `<button onclick="deleteUser('${u.id}', '${bmId}', this)" style="background:rgba(248,113,113,0.2); border:none; color:#f87171; padding:5px 8px; border-radius:4px; cursor:pointer;"><i class="ph-bold ph-trash"></i></button>`;
 
-    if (!myBusinessUserId) {
-        // Nếu vẫn không tìm thấy, thử xóa chính ID của Via (Đôi khi FB cho phép truyền Global ID)
-        myBusinessUserId = currentUserId; 
-    }
+        return `
+            <tr style="border-bottom:1px solid #334155;">
+                <td style="padding:10px; text-align:left;">
+                    <div style="font-weight:600; font-size:13px;">${u.name || 'Facebook User'}</div>
+                    <div style="font-size:11px; color:#64748b;">ID: ${u.id}</div>
+                </td>
+                <td style="padding:10px;">${roleBadge}</td>
+                <td style="padding:10px;">${deleteBtn}</td>
+            </tr>
+        `;
+    }).join('');
+
+    if(users.length === 0) tableRows = '<tr><td colspan="3" style="padding:20px;">Không lấy được danh sách.</td></tr>';
+
+    // Hiện Popup Table
+    Swal.fire({
+        title: 'Danh sách Thành viên',
+        html: `
+            <div style="max-height:300px; overflow-y:auto; margin-top:10px; border:1px solid #334155; border-radius:8px;">
+                <table style="width:100%; border-collapse:collapse; color:#fff;">
+                    <thead style="background:#0f172a; position:sticky; top:0;">
+                        <tr>
+                            <th style="padding:10px; text-align:left; font-size:11px; color:#94a3b8;">THÔNG TIN</th>
+                            <th style="padding:10px; font-size:11px; color:#94a3b8;">VAI TRÒ</th>
+                            <th style="padding:10px; font-size:11px; color:#94a3b8;">XÓA</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tableRows}</tbody>
+                </table>
+            </div>
+        `,
+        showConfirmButton: false,
+        showCloseButton: true,
+        width: 600,
+        background: '#1e293b', color: '#fff'
+    });
+}
+
+// Hàm con: Gọi API xóa user (Được gán vào nút HTML ở trên)
+window.deleteUser = async (userId, bmId, btnElement) => {
+    // Hiệu ứng Loading tại nút
+    const originalContent = btnElement.innerHTML;
+    btnElement.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i>';
+    btnElement.disabled = true;
 
     try {
-        const url = `https://graph.facebook.com/v17.0/${bmId}/business_users/${myBusinessUserId}?access_token=${accessToken}`;
-        // Hoặc endpoint DELETE trực tiếp vào ID user (thường dùng hơn)
-        const urlDirect = `https://graph.facebook.com/v17.0/${myBusinessUserId}?access_token=${accessToken}`;
-        
-        // Thử cách direct trước (thường hiệu quả với Business User ID)
-        let res = await fetch(urlDirect, { method: 'DELETE' });
-        let json = await res.json();
+        const res = await fetch(`https://graph.facebook.com/v17.0/${userId}?access_token=${accessToken}`, { method: 'DELETE' });
+        const json = await res.json();
 
         if (json.success) {
-            alert("Đã rời BM thành công!");
-            // Xóa dòng đó khỏi bảng ngay lập tức
-            scanBMs();
+            // Xóa dòng tr khỏi bảng ngay lập tức
+            btnElement.closest('tr').remove();
+            
+            // Cập nhật lại số liệu admin trong listBM (giả lập)
+            const bm = listBM.find(b => b.id == bmId);
+            if(bm && bm.business_users?.data) {
+                bm.business_users.data = bm.business_users.data.filter(u => u.id !== userId);
+                if(typeof scanBMs === "function") scanBMs(); // Refresh bảng chính
+            }
+            
+            const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500, background: '#1e293b', color: '#fff' });
+            Toast.fire({ icon: 'success', title: 'Đã đá thành công!' });
         } else {
-            alert("Không thể rời BM. Lỗi: " + json.error.message);
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: json.error?.message, background: '#1e293b', color: '#fff' });
+            btnElement.innerHTML = originalContent;
+            btnElement.disabled = false;
         }
     } catch (e) {
-        alert("Lỗi kết nối.");
+        btnElement.innerHTML = originalContent;
+        btnElement.disabled = false;
+    }
+};
+
+// ============================================================
+// 4. TÍNH NĂNG: RỜI BM (LEAVE) - CHECK KỸ
+// ============================================================
+async function actionLeave(bmId) {
+    const targetBM = listBM.find(b => b.id == bmId);
+    if (!targetBM) return;
+
+    // Đếm số lượng Admin
+    const admins = targetBM.business_users?.data.filter(u => u.role === 'ADMIN') || [];
+    const adminCount = admins.length;
+
+    let confirmConfig = {
+        title: 'Rời BM này?',
+        text: "Bạn có chắc chắn muốn thoát quyền Admin?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Đồng ý thoát',
+        confirmButtonColor: '#f87171',
+        cancelButtonText: 'Hủy',
+        background: '#1e293b', color: '#fff'
+    };
+
+    // Nếu chỉ còn 1 Admin -> Cảnh báo ĐỎ
+    if (adminCount <= 1) {
+        confirmConfig = {
+            title: '⚠️ CẢNH BÁO NGUY HIỂM',
+            html: `BM này chỉ còn <b>1 Admin duy nhất</b> (là bạn).<br>Nếu rời đi, BM sẽ bị <b>Vô hiệu hóa vĩnh viễn</b>!<br><br>Gõ chữ <b>CONFIRM</b> để xác nhận:`,
+            input: 'text',
+            inputValidator: (value) => {
+                if (value !== 'CONFIRM') return 'Vui lòng gõ CONFIRM để xác nhận hành động nguy hiểm này.';
+            },
+            icon: 'error',
+            showCancelButton: true,
+            confirmButtonText: 'XÓA BỎ BM & RỜI',
+            confirmButtonColor: '#d33',
+            background: '#1e293b', color: '#fff'
+        };
+    }
+
+    const result = await Swal.fire(confirmConfig);
+
+    if (result.isConfirmed) {
+        // Tìm ID của mình
+        let myId = currentUserId;
+        const me = targetBM.business_users?.data.find(u => u.id === currentUserId || u.user?.id === currentUserId);
+        if (me) myId = me.id;
+
+        Swal.fire({ title: 'Đang thoát...', didOpen: () => Swal.showLoading(), background: '#1e293b', color: '#fff', showConfirmButton: false });
+
+        try {
+            const res = await fetch(`https://graph.facebook.com/v17.0/${myId}?access_token=${accessToken}`, { method: 'DELETE' });
+            const json = await res.json();
+
+            if (json.success) {
+                Swal.fire({ icon: 'success', title: 'Đã rời thành công!', background: '#1e293b', color: '#fff' });
+                // Xóa khỏi bảng
+                listBM = listBM.filter(b => b.id !== bmId);
+                if(typeof scanBMs === "function") scanBMs();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Không thể rời', text: json.error?.message, background: '#1e293b', color: '#fff' });
+            }
+        } catch (e) {
+            Swal.fire({ icon: 'error', title: 'Lỗi mạng', background: '#1e293b', color: '#fff' });
+        }
+    }
+}
+
+// ============================================================
+// 5. TÍNH NĂNG: ĐỔI TÊN (RENAME)
+// ============================================================
+async function actionRename(bmId, currentName) {
+    const { value: newName } = await Swal.fire({
+        title: 'Đổi tên BM',
+        input: 'text',
+        inputValue: currentName,
+        showCancelButton: true,
+        confirmButtonText: 'Lưu thay đổi',
+        background: '#1e293b', color: '#fff',
+        inputValidator: (value) => {
+            if (!value) return 'Tên không được để trống!';
+        }
+    });
+
+    if (newName && newName !== currentName) {
+        Swal.fire({ title: 'Đang lưu...', didOpen: () => Swal.showLoading(), background: '#1e293b', color: '#fff', showConfirmButton: false });
+        
+        try {
+            const res = await fetch(`https://graph.facebook.com/v17.0/${bmId}?access_token=${accessToken}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name: newName })
+            });
+            const json = await res.json();
+            
+            if(json.success) {
+                Swal.fire({ icon: 'success', title: 'Đã đổi tên!', timer: 1500, showConfirmButton: false, background: '#1e293b', color: '#fff' });
+                // Update UI Local
+                const bm = listBM.find(b => b.id == bmId);
+                if(bm) bm.name = newName;
+                if(typeof scanBMs === "function") scanBMs();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: json.error?.message, background: '#1e293b', color: '#fff' });
+            }
+        } catch(e) {
+            Swal.fire({ icon: 'error', title: 'Lỗi mạng', background: '#1e293b', color: '#fff' });
+        }
     }
 }

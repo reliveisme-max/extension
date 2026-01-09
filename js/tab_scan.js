@@ -1,27 +1,26 @@
 // ============================================================
-// TAB_SCAN.JS - LOGIC QUÉT VÀ HIỂN THỊ (V6 FINAL)
-// Chứa: Logic Check Xanh/Đỏ tuyệt đối
+// TAB_SCAN.JS - LOGIC QUÉT VÀ HIỂN THỊ (UI PHOSPHOR MOI)
 // ============================================================
 
 // --- HÀM 1: QUÉT DATA TỪ FACEBOOK ---
 async function scanBMs() {
     const btn = document.getElementById('btn-scan');
     
-    // 1. Khóa nút
+    // UI Loading
     if(btn) {
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải...';
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Đang tải...';
         btn.disabled = true;
     }
 
-    // 2. Check Token
     if (!accessToken) {
-        // console.error("Chưa có Token.");
-        if(btn) { btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Quét lại'; btn.disabled = false; }
+        if(btn) { 
+            btn.innerHTML = '<i class="ph-bold ph-arrows-clockwise"></i> Quét Dữ Liệu'; 
+            btn.disabled = false; 
+        }
         return;
     }
 
-    // 3. Gọi API Graph
-    // Lấy thêm sharing_eligibility_status để bắt lỗi Hạn chế QC
     const fields = "id,name,creation_time,verification_status,is_business_ban,sharing_eligibility_status,owned_pages{id},client_pages{id},business_users{id,role,name,email}";
     const url = `https://graph.facebook.com/v17.0/me/businesses?access_token=${accessToken}&fields=${fields}&limit=500`;
 
@@ -34,7 +33,6 @@ async function scanBMs() {
             renderTable(listBM);
         } else {
             if (json.error && json.error.code === 190) {
-                // Token die -> Gọi Core lấy lại
                 await initCore(); 
             }
         }
@@ -42,13 +40,13 @@ async function scanBMs() {
         console.error("Lỗi mạng:", err);
     } finally {
         if(btn) {
-            btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Quét lại';
+            btn.innerHTML = '<i class="ph-bold ph-arrows-clockwise"></i> Quét Dữ Liệu';
             btn.disabled = false;
         }
     }
 }
 
-// --- HÀM 2: VẼ BẢNG DỮ LIỆU (RENDER) ---
+// --- HÀM 2: VẼ BẢNG DỮ LIỆU (RENDER UI MỚI) ---
 function renderTable(data) {
     const tbody = document.querySelector("#bm-table tbody");
     if(!tbody) return;
@@ -57,89 +55,95 @@ function renderTable(data) {
     let stats = { total: data.length, live: 0, die: 0, hidden: 0 };
 
     data.forEach((bm) => {
-        // --- A. LOGIC CHECK TRẠNG THÁI (MỚI) ---
-        // Logic: Chỉ cần dính 1 lỗi nhỏ -> ĐỎ LUÔN
-        
+        // --- LOGIC CHECK TRẠNG THÁI ---
         let isDie = false;
         let statusBadge = "";
 
-        // Kiểm tra các điều kiện xấu
         if (
-            bm.is_business_ban === true || // Bị vô hiệu hóa hẳn
-            bm.sharing_eligibility_status === 'restricted' || // Hạn chế QC (Page đỏ)
-            bm.sharing_eligibility_status === 'hub_restricted' || // Hạn chế Hub
-            bm.sharing_eligibility_status === 'probation' // Đang thử thách
+            bm.is_business_ban === true || 
+            bm.sharing_eligibility_status === 'restricted' || 
+            bm.sharing_eligibility_status === 'hub_restricted' || 
+            bm.sharing_eligibility_status === 'probation'
         ) {
             isDie = true;
         }
 
         if (isDie) {
             stats.die++;
-            // Hiển thị ĐỎ
-            statusBadge = `<span class="badge badge-die" style="background:rgba(239, 68, 68, 0.2); color:#ef4444; border:1px solid #ef4444;">RESTRICTED</span>`;
+            // Badge đỏ đẹp
+            statusBadge = `<span class="badge badge-die"><i class="ph-bold ph-warning-circle"></i> Restricted</span>`;
         } else {
             stats.live++;
-            // Hiển thị XANH
-            statusBadge = `<span class="badge badge-live">LIVE</span>`;
+            // Badge xanh đẹp
+            statusBadge = `<span class="badge badge-live"><i class="ph-bold ph-check-circle"></i> Live</span>`;
         }
 
-        // --- B. CÁC THÔNG SỐ KHÁC ---
-        
-        // Tích xanh
+        // --- CÁC THÔNG SỐ KHÁC ---
+        // Icon tích xanh (Phosphor Fill)
         let verifyIcon = bm.verification_status === "verified" 
-            ? `<i class="fa-solid fa-circle-check" style="color:#3b82f6; margin-left:5px" title="Verified BM"></i>` : "";
+            ? `<i class="ph-fill ph-seal-check" style="color:#38bdf8; margin-left:4px; vertical-align: middle;" title="Đã xác minh"></i>` : "";
 
-        // Năm tạo
         let year = bm.creation_time ? bm.creation_time.substring(0, 4) : "-";
 
-        // Tài sản
         let pageCount = 0;
         if(bm.owned_pages?.data) pageCount += bm.owned_pages.data.length;
         if(bm.client_pages?.data) pageCount += bm.client_pages.data.length;
 
-        // Admin & Ẩn
         let users = bm.business_users?.data || [];
         let adminCount = users.filter(u => u.role === 'ADMIN').length;
         let ghostAdmin = users.filter(u => !u.name || u.name === "Facebook User").length;
         if(ghostAdmin > 0) stats.hidden += ghostAdmin;
 
-        // --- C. HTML ROW ---
+        // --- TẠO HTML ROW (DÙNG PHOSPHOR ICON TRONG BUTTON) ---
         const tr = document.createElement("tr");
         
         tr.innerHTML = `
             <td class="center"><input type="checkbox" class="bm-checkbox" value="${bm.id}"></td>
             <td>
                 <span class="bm-name" id="name-${bm.id}">${bm.name} ${verifyIcon}</span>
-                <span class="bm-id" onclick="copyToClipboard('${bm.id}')">${bm.id}</span>
+                <span class="bm-id pointer-copy" data-id="${bm.id}" title="Click để copy ID">${bm.id}</span>
             </td>
             <td>
                 ${statusBadge} <br>
-                <span style="font-size:11px; color:#6b7280; margin-top:4px; display:block">Năm: ${year}</span>
+                <span style="font-size:11px; color:#64748b; margin-top:4px; display:block">Năm tạo: ${year}</span>
             </td>
             <td>
-                <i class="fa-regular fa-flag"></i> <b>${pageCount}</b> Page
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <i class="ph-bold ph-flag" style="color:#94a3b8"></i> 
+                    <b>${pageCount}</b> Page
+                </div>
             </td>
             <td>
-                <i class="fa-solid fa-user-shield"></i> <b>${adminCount}</b> Adm
-                ${ghostAdmin > 0 ? `<div style="color:#ef4444; font-size:10px; font-weight:bold">(${ghostAdmin} ẩn)</div>` : ''}
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <i class="ph-bold ph-shield-check" style="color:#94a3b8"></i> 
+                    <b>${adminCount}</b> Adm
+                </div>
+                ${ghostAdmin > 0 ? `<div style="color:#f87171; font-size:10px; font-weight:bold; margin-top:2px;">(${ghostAdmin} ẩn)</div>` : ''}
             </td>
             <td class="center">
                 <div class="action-group">
-                    <button class="icon-btn link" onclick="actionLink('${bm.id}')" title="Lấy Link Mời"><i class="fa-solid fa-link"></i></button>
-                    <button class="icon-btn edit" onclick="openRenameModal('${bm.id}', '${bm.name}')" title="Đổi tên"><i class="fa-solid fa-pen"></i></button>
-                    <button class="icon-btn clean" onclick="actionClean('${bm.id}')" title="Đá Admin ẩn"><i class="fa-solid fa-broom"></i></button>
-                    <button class="icon-btn leave" onclick="actionLeave('${bm.id}')" title="Rời BM"><i class="fa-solid fa-right-from-bracket"></i></button>
+                    <button class="icon-btn btn-action" data-action="link" data-id="${bm.id}" title="Lấy Link Mời">
+                        <i class="ph-bold ph-link"></i>
+                    </button>
+                    <button class="icon-btn btn-action" data-action="edit" data-id="${bm.id}" data-name="${bm.name}" title="Đổi tên">
+                        <i class="ph-bold ph-pencil-simple"></i>
+                    </button>
+                    <button class="icon-btn btn-action" data-action="clean" data-id="${bm.id}" title="Quét Admin Ẩn">
+                        <i class="ph-bold ph-broom"></i>
+                    </button>
+                    <button class="icon-btn btn-action" data-action="leave" data-id="${bm.id}" title="Rời BM">
+                        <i class="ph-bold ph-sign-out"></i>
+                    </button>
                 </div>
             </td>
         `;
         tbody.appendChild(tr);
     });
 
-    // Update Stats UI
     updateStatsUI(stats);
 }
 
-// Update UI
+// Cập nhật thống kê
 function updateStatsUI(stats) {
     const sTotal = document.getElementById('stat-total');
     const sLive = document.getElementById('stat-live');
@@ -152,7 +156,19 @@ function updateStatsUI(stats) {
     if(sHidden) sHidden.innerText = stats.hidden;
 }
 
-// Utils
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text);
+// Tìm kiếm
+const searchInput = document.getElementById('search-input');
+if(searchInput) {
+    searchInput.addEventListener('keyup', (e) => {
+        const keyword = e.target.value.toLowerCase();
+        const filtered = listBM.filter(bm => 
+            (bm.name && bm.name.toLowerCase().includes(keyword)) || 
+            (bm.id && bm.id.includes(keyword))
+        );
+        renderTable(filtered);
+    });
 }
+
+// Nút Quét
+const btnScan = document.getElementById('btn-scan');
+if(btnScan) btnScan.addEventListener('click', scanBMs);
