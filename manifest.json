@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "BM Commander - All in One",
+  "version": "4.0",
+  "description": "Quản lý và Thao tác BM trên một màn hình duy nhất.",
+  "permissions": [
+    "cookies",
+    "tabs",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.facebook.com/*",
+    "*://graph.facebook.com/*"
+  ],
+  "action": {
+    "default_title": "Mở Dashboard BM"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
