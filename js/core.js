@@ -1,10 +1,13 @@
 // ============================================================
-// CORE.JS - TRÁI TIM HỆ THỐNG
+// CORE.JS - TRÁI TIM HỆ THỐNG (FONT AWESOME VERSION)
 // Chứa: Biến toàn cục, Hàm lấy Token, Check Cookie, User Info
 // ============================================================
 
 // --- 1. BIẾN TOÀN CỤC (GLOBAL VARIABLES) ---
-// Các file khác (tab_scan, tab_reg...) sẽ dùng chung các biến này
+// Cập nhật Version API tại đây (Bạn có thể sửa thành v25.0, v26.0... tùy ý)
+const FB_API_VERSION = "v24.0"; 
+const GRAPH_API = `https://graph.facebook.com/${FB_API_VERSION}`;
+
 let accessToken = "";
 let currentUserId = "";
 let listBM = []; 
@@ -14,8 +17,8 @@ function updateStatus(text, type) {
     const el = document.getElementById('token-status');
     if(!el) return;
 
-    let icon = "fa-circle-notch fa-spin";
-    if (type === "success") icon = "fa-check-circle";
+    let icon = "fa-spinner fa-spin"; 
+    if (type === "success") icon = "fa-circle-check";
     if (type === "danger") icon = "fa-triangle-exclamation";
     if (type === "warning") icon = "fa-circle-exclamation";
 
@@ -23,7 +26,7 @@ function updateStatus(text, type) {
     el.className = `status-badge ${type}`;
 }
 
-// --- 3. CHECK COOKIE SỐNG HAY CHẾT ---
+// --- 3. CHECK COOKIE ---
 function checkCookieAlive() {
     return new Promise((resolve) => {
         if (chrome.cookies) {
@@ -31,12 +34,12 @@ function checkCookieAlive() {
                 resolve(!!cookie);
             });
         } else {
-            resolve(true); // Fallback cho môi trường dev local
+            resolve(true); 
         }
     });
 }
 
-// --- 4. LẤY TOKEN (BRUTE FORCE) ---
+// --- 4. LẤY TOKEN ---
 async function getTokenBruteForce() {
     const sources = [
         'https://www.facebook.com/adsmanager/manage/campaigns',
@@ -48,13 +51,12 @@ async function getTokenBruteForce() {
     for (const url of sources) {
         try {
             const token = await fetchAndFindToken(url);
-            if (token) return token; // Tìm thấy là trả về ngay
+            if (token) return token; 
         } catch (e) { }
     }
     return null;
 }
 
-// Hàm phụ trợ: Gọi URL và soi Regex tìm EAA...
 async function fetchAndFindToken(url) {
     try {
         const response = await fetch(url, { method: 'GET', credentials: 'include' });
@@ -64,11 +66,12 @@ async function fetchAndFindToken(url) {
     } catch (error) { return null; }
 }
 
-// --- 5. LẤY INFO USER HIỆN TẠI ---
+// --- 5. LẤY INFO USER (Đã dùng biến GRAPH_API) ---
 async function getSelfInfo() {
     if (!accessToken) return;
     try {
-        const res = await fetch(`https://graph.facebook.com/me?access_token=${accessToken}`);
+        // Thay link cứng bằng biến GRAPH_API
+        const res = await fetch(`${GRAPH_API}/me?access_token=${accessToken}`);
         const data = await res.json();
         
         if(data.id) {
@@ -79,7 +82,7 @@ async function getSelfInfo() {
     } catch(e) { console.error("Lỗi lấy Info User"); }
 }
 
-// --- 6. KHỞI ĐỘNG HỆ THỐNG (GỌI TỪ MAIN.JS) ---
+// --- 6. KHỞI ĐỘNG HỆ THỐNG ---
 async function initCore() {
     updateStatus("Check Cookies...", "warning");
     
@@ -97,10 +100,10 @@ async function initCore() {
         accessToken = token;
         updateStatus("Token Live", "success");
         await getSelfInfo();
-        return true; // Thành công
+        return true; 
     } else {
         updateStatus("Lỗi Token", "danger");
         alert("Không lấy được Token. Hãy thử vào 'adsmanager.facebook.com' thủ công một lần.");
-        return false; // Thất bại
+        return false; 
     }
 }

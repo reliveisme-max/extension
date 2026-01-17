@@ -7,31 +7,30 @@
     <!-- CSS Chính -->
     <link rel="stylesheet" href="style.css">
     
-    <!-- 1. PHOSPHOR ICONS (Icon đẹp, nét mảnh) -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- 1. FONT AWESOME (OFFLINE) -->
+    <link rel="stylesheet" href="assets/fontawesome/css/all.min.css">
 
-    <!-- 2. SWEETALERT 2 (Thông báo đẹp) -->
-    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    <!-- 2. SWEETALERT 2 CSS (LIGHT MODE - OFFLINE) -->
+    <link rel="stylesheet" href="assets/sweetalert2/sweetalert2.min.css">
 </head>
 <body>
 
     <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="logo">
-            <i class="ph-duotone ph-shield-check" style="color: #818cf8;"></i> 
+            <i class="fa-solid fa-shield-halved"></i> 
             <span>BM COMMANDER</span>
         </div>
         
         <ul class="menu">
             <li class="active" id="nav-scan">
-                <i class="ph-bold ph-squares-four"></i> Quản lý chung
+                <i class="fa-solid fa-grip"></i> Quản lý chung
             </li>
             <li id="nav-reg">
-                <i class="ph-bold ph-magic-wand"></i> Reg BM Auto
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Reg BM Auto
             </li>
             <li class="disabled">
-                <i class="ph-bold ph-gear"></i> Cấu hình
+                <i class="fa-solid fa-gear"></i> Cấu hình
             </li>
         </ul>
 
@@ -48,7 +47,7 @@
         <div class="top-bar">
             <!-- Status Badge -->
             <div id="token-status" class="status-badge loading">
-                <i class="ph-bold ph-spinner ph-spin"></i> Kết nối...
+                <i class="fa-solid fa-spinner fa-spin"></i> Kết nối...
             </div>
 
             <!-- User Info -->
@@ -58,38 +57,38 @@
                     <small>Administrator</small>
                 </div>
                 <div class="avatar">
-                    <i class="ph-bold ph-user"></i>
+                    <i class="fa-solid fa-user"></i>
                 </div>
             </div>
         </div>
 
         <!-- === TAB 1: DASHBOARD === -->
         <div id="tab-scan" class="tab-panel active">
-            <!-- Thống kê (Thêm icon cho đẹp) -->
+            <!-- Thống kê -->
             <div class="stats-grid">
                 <div class="card stat-box">
-                    <div class="icon-box"><i class="ph-duotone ph-briefcase"></i></div>
+                    <div class="icon-box"><i class="fa-solid fa-briefcase"></i></div>
                     <div>
                         <h3>Tổng BM</h3>
                         <span id="stat-total">0</span>
                     </div>
                 </div>
                 <div class="card stat-box success">
-                    <div class="icon-box"><i class="ph-duotone ph-check-circle"></i></div>
+                    <div class="icon-box"><i class="fa-solid fa-circle-check"></i></div>
                     <div>
                         <h3>Đang Hoạt Động</h3>
                         <span id="stat-live">0</span>
                     </div>
                 </div>
                 <div class="card stat-box danger">
-                    <div class="icon-box"><i class="ph-duotone ph-warning-circle"></i></div>
+                    <div class="icon-box"><i class="fa-solid fa-circle-exclamation"></i></div>
                     <div>
                         <h3>Die / Policy</h3>
                         <span id="stat-die">0</span>
                     </div>
                 </div>
                 <div class="card stat-box warning">
-                    <div class="icon-box"><i class="ph-duotone ph-ghost"></i></div>
+                    <div class="icon-box"><i class="fa-solid fa-ghost"></i></div>
                     <div>
                         <h3>Admin Ẩn</h3>
                         <span id="stat-hidden">0</span>
@@ -101,18 +100,29 @@
             <div class="action-bar card">
                 <div class="left-actions">
                     <button id="btn-scan" class="btn btn-primary">
-                        <i class="ph-bold ph-arrows-clockwise"></i> Quét Dữ Liệu
+                        <i class="fa-solid fa-rotate"></i> Quét Dữ Liệu
                     </button>
                     <div class="search-wrapper">
-                        <i class="ph-bold ph-magnifying-glass"></i>
+                        <i class="fa-solid fa-magnifying-glass"></i>
                         <input type="text" id="search-input" placeholder="Tìm kiếm BM...">
                     </div>
                 </div>
                 
                 <div class="right-actions" id="bulk-actions" style="opacity: 0.5; pointer-events: none;">
                     <span class="selected-text">Đã chọn: <b id="selected-count">0</b></span>
+                    
+                    <!-- [NEW] NÚT MỜI HÀNG LOẠT -->
+                    <button id="btn-bulk-invite" class="btn btn-primary btn-sm" style="background:#3b82f6;">
+                        <i class="fa-solid fa-paper-plane"></i> Mời Nhanh
+                    </button>
+
+                    <!-- Nút Auto Backup Mail -->
+                    <button id="btn-auto-backup" class="btn btn-primary btn-sm" style="background:#f59e0b; border-color:#f59e0b; color:#fff;">
+                        <i class="fa-solid fa-robot"></i> Auto Backup
+                    </button>
+
                     <button id="btn-bulk-leave" class="btn btn-danger btn-sm">
-                        <i class="ph-bold ph-sign-out"></i> Rời Nhanh
+                        <i class="fa-solid fa-right-from-bracket"></i> Rời Nhanh
                     </button>
                 </div>
             </div>
@@ -141,14 +151,14 @@
                 <!-- Cột Trái: Cấu Hình -->
                 <div class="card reg-config">
                     <div class="card-header">
-                        <h3><i class="ph-duotone ph-sliders-horizontal"></i> Cấu Hình Reg</h3>
+                        <h3><i class="fa-solid fa-sliders"></i> Cấu Hình Reg</h3>
                         <span id="limit-info" class="badge">Check Limit...</span>
                     </div>
                     
                     <div class="form-group">
                         <label>Tên BM Gốc</label>
                         <div class="input-with-icon">
-                            <i class="ph-bold ph-tag"></i>
+                            <i class="fa-solid fa-tag"></i>
                             <input type="text" id="reg-name" value="BM Agency" placeholder="VD: Ads Pro...">
                         </div>
                     </div>
@@ -170,7 +180,7 @@
                     <div class="form-group">
                         <label>Mời Email (Tùy chọn)</label>
                         <div class="input-with-icon">
-                            <i class="ph-bold ph-envelope"></i>
+                            <i class="fa-solid fa-envelope"></i>
                             <input type="text" id="reg-email" placeholder="Nhập email...">
                         </div>
                     </div>
@@ -189,15 +199,15 @@
                     </div>
 
                     <button id="btn-start-reg" class="btn btn-primary full-width mt-3">
-                        <i class="ph-bold ph-play"></i> BẮT ĐẦU CHẠY
+                        <i class="fa-solid fa-play"></i> BẮT ĐẦU CHẠY
                     </button>
                 </div>
 
                 <!-- Cột Phải: Logs -->
                 <div class="card reg-logs-container">
                     <div class="card-header">
-                        <h3><i class="ph-duotone ph-terminal-window"></i> Nhật Ký (Logs)</h3>
-                        <button class="btn-icon-small" onclick="document.getElementById('reg-logs').innerHTML=''"><i class="ph-bold ph-trash"></i></button>
+                        <h3><i class="fa-solid fa-terminal"></i> Nhật Ký (Logs)</h3>
+                        <button class="btn-icon-small" onclick="document.getElementById('reg-logs').innerHTML=''"><i class="fa-solid fa-trash"></i></button>
                     </div>
                     <div id="reg-logs" class="console-log">
                         <div class="log-line info">> Hệ thống sẵn sàng...</div>
@@ -209,10 +219,13 @@
     </div>
 
     <!-- JS MODULES -->
+    <script src="assets/sweetalert2/sweetalert2.min.js"></script>
+    
     <script src="js/core.js"></script>
     <script src="js/tab_scan.js"></script>
     <script src="js/tab_action.js"></script>
     <script src="js/tab_reg.js"></script>
+    <script src="js/mail_service.js"></script>
     <script src="js/main.js"></script>
 
 </body>

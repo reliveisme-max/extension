@@ -1,5 +1,5 @@
 // ============================================================
-// MAIN.JS - ĐIỀU KHIỂN CHUNG (ĐÃ SỬA LỖI CLICK)
+// MAIN.JS - ĐIỀU KHIỂN CHUNG (API VERSION UPDATE)
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -13,9 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- 2. GÁN SỰ KIỆN CLICK CHO MENU (FIX LỖI) ---
-    // Thay vì dùng onclick trong HTML, ta bắt sự kiện tại đây
-    
+    // --- 2. GÁN SỰ KIỆN CLICK CHO MENU ---
     const navScan = document.getElementById('nav-scan');
     const navReg = document.getElementById('nav-reg');
 
@@ -59,7 +57,7 @@ function switchTab(tabId, activeMenuEl) {
     if (activeMenuEl) activeMenuEl.classList.add('active');
 }
 
-// --- 3. CÁC XỬ LÝ CHECKBOX & BULK ACTIONS (GIỮ NGUYÊN) ---
+// --- 3. CÁC XỬ LÝ CHECKBOX & BULK ACTIONS ---
 
 const checkAllBox = document.getElementById('check-all');
 if (checkAllBox) {
@@ -107,26 +105,55 @@ if (btnBulkLeave) {
 
         if (!confirm(`⚠️ CẢNH BÁO: Rời ${selectedIds.length} BM cùng lúc?`)) return;
 
+        // UI Loading
         btnBulkLeave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ...';
         btnBulkLeave.disabled = true;
 
         for (const bmId of selectedIds) {
             try {
-                // Logic rời nhanh (copy logic)
                 let myUserId = currentUserId; 
                 const targetBM = listBM.find(b => b.id == bmId);
                 if(targetBM && targetBM.business_users) {
                     const me = targetBM.business_users.data.find(u => u.id === currentUserId || u.user?.id === currentUserId);
                     if(me) myUserId = me.id;
                 }
-                await fetch(`https://graph.facebook.com/v17.0/${bmId}/business_users/${myUserId}?access_token=${accessToken}`, { method: 'DELETE' });
+                
+                // [UPDATE] Dùng GRAPH_API
+                await fetch(`${GRAPH_API}/${bmId}/business_users/${myUserId}?access_token=${accessToken}`, { method: 'DELETE' });
             } catch (e) {}
         }
 
         alert("Xong!");
         btnBulkLeave.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Rời BM';
         btnBulkLeave.disabled = false;
+        
         if(checkAllBox) checkAllBox.checked = false;
         if (typeof scanBMs === "function") scanBMs();
+    });
+}
+// --- [NEW] XỬ LÝ NÚT MỜI HÀNG LOẠT ---
+const btnBulkInvite = document.getElementById('btn-bulk-invite');
+if (btnBulkInvite) {
+    btnBulkInvite.addEventListener('click', () => {
+        const selectedIds = Array.from(document.querySelectorAll('.bm-checkbox:checked')).map(cb => cb.value);
+        if (selectedIds.length === 0) return; // Chưa chọn BM nào
+        
+        // Gọi hàm xử lý bên tab_action.js
+        if (typeof startBulkInvite === 'function') {
+            startBulkInvite(selectedIds);
+        }
+    });
+}
+// --- [NEW] XỬ LÝ NÚT AUTO BACKUP (MAIL.GW) ---
+const btnAutoBackup = document.getElementById('btn-auto-backup');
+if (btnAutoBackup) {
+    btnAutoBackup.addEventListener('click', () => {
+        const selectedIds = Array.from(document.querySelectorAll('.bm-checkbox:checked')).map(cb => cb.value);
+        if (selectedIds.length === 0) return alert("Vui lòng chọn ít nhất 1 BM để Backup!");
+        
+        // Gọi hàm xử lý bên tab_action.js
+        if (typeof startAutoBackup === 'function') {
+            startAutoBackup(selectedIds);
+        }
     });
 }

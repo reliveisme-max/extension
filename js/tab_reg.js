@@ -1,16 +1,14 @@
 // ============================================================
-// TAB_REG.JS - TÍNH NĂNG TẠO BM (V6 FINAL - CLEAN)
-// Chứa: Logic Check Limit (Silent), Reg BM, Invite Email
+// TAB_REG.JS - TÍNH NĂNG TẠO BM (API VERSION UPDATE)
 // ============================================================
 
-// Sự kiện nút Bắt đầu (Giữ nguyên)
+// Sự kiện nút Bắt đầu
 const btnStartReg = document.getElementById('btn-start-reg');
 if(btnStartReg) {
     btnStartReg.addEventListener('click', startRegProcess);
 }
 
 // --- 1. CHECK LIMIT (CHẠY NGẦM) ---
-// Hàm này sẽ được gọi từ Main.js khi bấm chuyển Tab
 async function checkViaLimit() {
     const infoBadge = document.getElementById('limit-info');
     if(!accessToken || !infoBadge) return;
@@ -19,14 +17,13 @@ async function checkViaLimit() {
     infoBadge.className = "badge badge-die"; 
 
     try {
-        // Đếm số lượng BM hiện có
-        const url = `https://graph.facebook.com/v17.0/me/businesses?access_token=${accessToken}&limit=500`;
+        // [UPDATE] Dùng GRAPH_API
+        const url = `${GRAPH_API}/me/businesses?access_token=${accessToken}&limit=500`;
         const res = await fetch(url);
         const json = await res.json();
         
         const count = json.data ? json.data.length : 0;
         
-        // Cập nhật UI Badge
         infoBadge.innerText = `Đang cầm: ${count} BM`;
         infoBadge.className = "badge badge-live"; 
         infoBadge.style.background = "#374151";
@@ -37,11 +34,11 @@ async function checkViaLimit() {
     }
 }
 
-// --- 2. LUỒNG REG CHÍNH (MAIN FLOW) ---
+// --- 2. LUỒNG REG CHÍNH ---
 async function startRegProcess() {
     const btn = document.getElementById('btn-start-reg');
     
-    // A. Lấy Input từ Form
+    // A. Lấy Input
     const baseName = document.getElementById('reg-name').value.trim() || "BM Agency";
     const qtyInput = document.getElementById('reg-qty');
     const qty = parseInt(qtyInput.value) || 1;
@@ -90,7 +87,6 @@ async function startRegProcess() {
 
         } else {
             addLog(`❌ Thất bại: ${result.error}`, "danger");
-            // Check lỗi Limit
             const errStr = result.error.toLowerCase();
             if (errStr.includes("limit") || errStr.includes("maximum")) {
                 addLog("⛔ Đã đạt giới hạn tạo BM của Via này! Dừng lại.", "danger");
@@ -109,16 +105,16 @@ async function startRegProcess() {
     // D. Kết thúc
     addLog(`🏁 Hoàn tất! Thành công: ${successCount}/${qty}`, "info");
     btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-play"></i> BẮT ĐẦU REG';
+    btn.innerHTML = '<i class="fa-solid fa-play"></i> BẮT ĐẦU CHẠY';
     
-    // Refresh lại list BM (ngầm)
     if(typeof scanBMs === "function") scanBMs();
 }
 
 // --- API & UTILS ---
 async function createBM(name) {
     try {
-        const url = `https://graph.facebook.com/v17.0/me/businesses?access_token=${accessToken}`;
+        // [UPDATE] Dùng GRAPH_API
+        const url = `${GRAPH_API}/me/businesses?access_token=${accessToken}`;
         const payload = { name: name, vertical: "OTHER" };
         const res = await fetch(url, {
             method: 'POST',
@@ -133,7 +129,8 @@ async function createBM(name) {
 
 async function inviteUserToBM(bmId, email) {
     try {
-        const url = `https://graph.facebook.com/v17.0/${bmId}/business_users?access_token=${accessToken}`;
+        // [UPDATE] Dùng GRAPH_API
+        const url = `${GRAPH_API}/${bmId}/business_users?access_token=${accessToken}`;
         const res = await fetch(url, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},

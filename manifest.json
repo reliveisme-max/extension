@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "BM Commander - All in One",
+  "name": "BM Commander Pro",
   "version": "6.0",
-  "description": "Quản lý và Reg BM chuyên nghiệp.",
+  "description": "Quản lý và Reg BM chuyên nghiệp (Offline Mode).",
   "permissions": [
     "cookies",
     "tabs",
@@ -11,12 +11,28 @@
   ],
   "host_permissions": [
     "*://*.facebook.com/*",
-    "*://graph.facebook.com/*"
+    "*://graph.facebook.com/*",
+    "https://api.mail.cx/*"
   ],
   "action": {
     "default_title": "Mở Dashboard BM"
   },
   "background": {
     "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/fontawesome/css/all.min.css",
+        "assets/fontawesome/webfonts/*",
+        "assets/sweetalert2/sweetalert2.min.css",
+        "assets/sweetalert2/sweetalert2.min.js",
+        "dashboard.html"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
   }
 }
